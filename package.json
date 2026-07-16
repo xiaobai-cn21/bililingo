@@ -1,0 +1,19 @@
+{
+  "name": "bilingo-for-bilibili",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A local-first Chinese learning overlay for Bilibili videos.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test",
+    "test:all": "npm run check && npm test && npm run build"
+  },
+  "dependencies": {
+    "pinyin-pro": "^3.27.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

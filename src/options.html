@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bilingo settings</title>
+    <link rel="stylesheet" href="ui.css" />
+  </head>
+  <body class="options-page">
+    <main class="settings-card">
+      <header>
+        <p class="eyebrow">Bilingo for Bilibili</p>
+        <h1>Learning caption settings</h1>
+        <p class="lede">Customize the overlay. Changes apply immediately to open Bilibili videos.</p>
+      </header>
+
+      <section aria-labelledby="display-heading">
+        <h2 id="display-heading">Display</h2>
+        <label class="toggle-row">
+          <span><strong>Show pinyin</strong><small>Display pronunciation above Chinese tokens</small></span>
+          <input id="showPinyin" type="checkbox" role="switch" />
+        </label>
+        <label class="range-row">
+          <span><strong>Text size</strong><output id="fontScaleValue"></output></span>
+          <input id="fontScale" type="range" min="0.75" max="1.5" step="0.05" />
+        </label>
+        <label class="range-row">
+          <span><strong>Background opacity</strong><output id="opacityValue"></output></span>
+          <input id="opacity" type="range" min="0.45" max="1" step="0.05" />
+        </label>
+      </section>
+
+      <section aria-labelledby="interaction-heading">
+        <h2 id="interaction-heading">Interaction</h2>
+        <label class="toggle-row">
+          <span><strong>Pause when inspecting a word</strong><small>Pause playback when the definition card opens</small></span>
+          <input id="pauseOnClick" type="checkbox" role="switch" />
+        </label>
+      </section>
+
+      <aside class="privacy-panel">
+        <strong>Local-first privacy</strong>
+        <p>Bilingo reads captions already displayed by the active Bilibili player. It does not request cookie access, download videos, or upload subtitle text.</p>
+      </aside>
+
+      <div class="actions">
+        <button id="reset" class="secondary" type="button">Reset defaults</button>
+        <span id="saved" role="status" aria-live="polite"></span>
+      </div>
+    </main>
+    <script src="options.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bilingo</title>
+    <link rel="stylesheet" href="ui.css" />
+  </head>
+  <body class="popup-page">
+    <main class="popup-card">
+      <header class="brand">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <div><strong>Bilingo</strong><small>for Bilibili</small></div>
+      </header>
+      <label class="toggle-row">
+        <span><strong>Learning captions</strong><small>Enhance captions on Bilibili video pages</small></span>
+        <input id="enabled" type="checkbox" role="switch" />
+      </label>
+      <p id="status" class="notice" role="status">Open a Bilibili video to begin.</p>
+      <button id="options" class="secondary wide" type="button">Caption settings</button>
+      <p class="privacy-note">Caption processing stays in your browser.</p>
+    </main>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>
