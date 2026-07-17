@@ -6,6 +6,7 @@
   "description": "A local-first Chinese learning overlay for Bilibili videos.",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:cedict": "node scripts/build-cedict.mjs",
     "check": "node scripts/check.mjs",
     "release:check": "node scripts/release-check.mjs",
     "package:beta": "npm run build && node scripts/package.mjs",

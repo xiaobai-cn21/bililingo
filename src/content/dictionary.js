@@ -1,5 +1,7 @@
-// Original concise starter definitions. Replace or expand with a properly
-// licensed dictionary dataset before public launch.
+import { CEDICT } from "./cedict-data.js";
+
+// Original concise starter definitions kept as a small fallback for custom
+// product wording and tests.
 const DEFINITIONS = Object.freeze({
   我: ["I; me", "pronoun"],
   你: ["you", "pronoun"],
@@ -46,18 +48,28 @@ const DEFINITIONS = Object.freeze({
 });
 
 export const DICTIONARY_METADATA = Object.freeze({
-  name: "Bilingo starter lexicon",
-  productionReady: false,
-  license: "Original development sample; not a production dictionary dataset",
+  name: "CC-CEDICT",
+  productionReady: true,
+  license: "Creative Commons Attribution-ShareAlike 4.0 International",
 });
 
 export function lookupWord(surface) {
-  const entry = DEFINITIONS[surface];
-  return entry
-    ? { meaning: entry[0], partOfSpeech: entry[1], source: DICTIONARY_METADATA.name }
-    : {
-        meaning: "Definition unavailable in the local starter dictionary.",
-        partOfSpeech: "",
-        source: "Local lookup",
-      };
+  const normalized = String(surface ?? "").trim();
+  const cedictEntry = CEDICT[normalized];
+  if (cedictEntry) {
+    return {
+      meaning: cedictEntry[1],
+      partOfSpeech: "",
+      source: DICTIONARY_METADATA.name,
+    };
+  }
+
+  const entry = DEFINITIONS[normalized];
+  if (entry) return { meaning: entry[0], partOfSpeech: entry[1], source: "Bilingo starter lexicon" };
+
+  return {
+    meaning: "Definition unavailable in the local dictionary.",
+    partOfSpeech: "",
+    source: "Local lookup",
+  };
 }

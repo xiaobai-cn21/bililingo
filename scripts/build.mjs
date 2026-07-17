@@ -11,11 +11,12 @@ await rm(output, { recursive: true, force: true });
 await mkdir(resolve(output, "icons"), { recursive: true });
 
 await build({
-  entryPoints: {
-    content: resolve(source, "content/app.js"),
-    popup: resolve(source, "popup.js"),
-    options: resolve(source, "options.js"),
-  },
+  entryPoints: [
+    { in: "src/content/app.js", out: "content" },
+    { in: "src/popup.js", out: "popup" },
+    { in: "src/options.js", out: "options" },
+  ],
+  absWorkingDir: root,
   bundle: true,
   outdir: output,
   format: "iife",
