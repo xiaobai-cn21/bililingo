@@ -3,9 +3,11 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const manifest = JSON.parse(await readFile(resolve(root, "src/manifest.json"), "utf8"));
+const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 const errors = [];
 
 if (manifest.manifest_version !== 3) errors.push("manifest_version must be 3");
+if (manifest.version !== packageJson.version) errors.push("manifest and package versions must match");
 if (manifest.permissions?.some((permission) => ["cookies", "webRequest", "tabs", "history"].includes(permission))) {
   errors.push("manifest contains a prohibited broad/sensitive permission");
 }
@@ -19,6 +21,10 @@ const referencedFiles = [
   manifest.options_ui.page,
   ...manifest.content_scripts.flatMap(({ js = [], css = [] }) => [...js, ...css]),
 ];
+for (const page of ["popup.html", "options.html"]) {
+  const html = await readFile(resolve(root, "src", page), "utf8");
+  if (!html.includes("about.html")) errors.push(`${page} must link to the in-product privacy notice`);
+}
 for (const file of referencedFiles) {
   const sourceFile = file === "content.js" ? "content/app.js" : file;
   try {

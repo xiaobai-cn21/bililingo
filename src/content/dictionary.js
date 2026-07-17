@@ -45,10 +45,16 @@ const DEFINITIONS = Object.freeze({
   谢谢: ["thank you", "expression"],
 });
 
+export const DICTIONARY_METADATA = Object.freeze({
+  name: "Bilingo starter lexicon",
+  productionReady: false,
+  license: "Original development sample; not a production dictionary dataset",
+});
+
 export function lookupWord(surface) {
   const entry = DEFINITIONS[surface];
   return entry
-    ? { meaning: entry[0], partOfSpeech: entry[1], source: "Bilingo starter lexicon" }
+    ? { meaning: entry[0], partOfSpeech: entry[1], source: DICTIONARY_METADATA.name }
     : {
         meaning: "Definition unavailable in the local starter dictionary.",
         partOfSpeech: "",

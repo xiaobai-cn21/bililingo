@@ -14,7 +14,11 @@ test("settings clamp numeric values", () => {
 });
 
 test("settings coerce feature flags", () => {
-  const settings = normalizeSettings({ enabled: 1, showPinyin: 0, pauseOnClick: "yes" });
+  const settings = normalizeSettings({
+    enabled: 1,
+    showPinyin: 0,
+    pauseOnClick: "yes",
+  });
   assert.equal(settings.enabled, true);
   assert.equal(settings.showPinyin, false);
   assert.equal(settings.pauseOnClick, true);

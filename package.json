@@ -7,6 +7,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node scripts/check.mjs",
+    "release:check": "node scripts/release-check.mjs",
+    "package:beta": "npm run build && node scripts/package.mjs",
+    "release": "npm run test:all && npm run release:check && node scripts/package.mjs",
     "test": "node --test",
     "test:all": "npm run check && npm test && npm run build"
   },

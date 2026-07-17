@@ -9,9 +9,8 @@ export class LearningOverlay {
     this.settings = null;
     this.tokens = [];
     this.captionText = "";
-    this.cueStartedAt = 0;
-    this.estimatedDurationMs = 3500;
     this.drag = null;
+    this.activeAnchor = null;
 
     this.host = document.createElement("div");
     this.host.dataset.bilingoRoot = "";
@@ -38,12 +37,19 @@ export class LearningOverlay {
   }
 
   bindEvents() {
-    this.elements.activation.addEventListener("click", () => this.onEnable());
-    this.shadow.querySelector(".card-close").addEventListener("click", () => this.closeCard());
+    this.elements.activation.addEventListener("click", () => {
+      Promise.resolve(this.onEnable()).catch(() => {
+        this.setStatus("启用失败，请重试 / Could not enable; please retry");
+      });
+    });
+    this.shadow.querySelector(".card-close").addEventListener("click", () => this.closeCard(true));
     this.shadow.querySelector(".replay").addEventListener("click", () => {
       this.video.currentTime = Math.max(0, this.video.currentTime - 3);
-      void this.video.play();
+      void this.video.play().catch(() => {
+        this.setStatus("浏览器阻止了自动播放 / Playback was blocked");
+      });
     });
+    this.elements.card.addEventListener("keydown", (event) => this.handleCardKeydown(event));
     this.elements.caption.addEventListener("pointerdown", (event) => this.startDrag(event));
     this.elements.caption.addEventListener("pointermove", (event) => this.moveDrag(event));
     this.elements.caption.addEventListener("pointerup", () => this.endDrag());
@@ -57,14 +63,15 @@ export class LearningOverlay {
     this.host.style.setProperty("--bilingo-offset", `${settings.verticalOffset}%`);
     this.elements.activation.hidden = settings.enabled;
     this.elements.caption.hidden = !settings.enabled || !this.tokens.length;
+    for (const [index, pronunciation] of [...this.shadow.querySelectorAll(".pinyin")].entries()) {
+      pronunciation.textContent = settings.showPinyin ? this.tokens[index]?.pinyin ?? "" : "";
+    }
     if (!settings.enabled) this.closeCard();
   }
 
-  showCaption({ text, tokens, startedAt = performance.now(), durationMs = 3500 }) {
+  showCaption({ text, tokens }) {
     this.captionText = text;
     this.tokens = tokens;
-    this.cueStartedAt = startedAt;
-    this.estimatedDurationMs = Math.max(800, durationMs);
     this.elements.tokens.replaceChildren(...tokens.map((token, index) => this.makeToken(token, index)));
     this.elements.caption.hidden = !this.settings?.enabled;
     this.elements.status.textContent = "";
@@ -78,7 +85,7 @@ export class LearningOverlay {
   }
 
   setStatus(message) {
-    this.elements.status.textContent = message;
+    if (this.elements.status.textContent !== message) this.elements.status.textContent = message;
   }
 
   makeToken(token, index) {
@@ -110,14 +117,38 @@ export class LearningOverlay {
     this.elements.cardContext.textContent = this.captionText;
     this.elements.card.hidden = false;
     this.elements.card.dataset.source = definition.source;
+    this.activeAnchor?.removeAttribute("aria-expanded");
+    this.activeAnchor = anchor;
     this.shadow.querySelector(".card-close").focus();
     anchor.setAttribute("aria-expanded", "true");
   }
 
-  closeCard() {
+  closeCard(restoreFocus = false) {
     this.elements.card.hidden = true;
     for (const token of this.shadow.querySelectorAll("[aria-expanded]")) {
       token.removeAttribute("aria-expanded");
+    }
+    if (restoreFocus && this.activeAnchor?.isConnected) this.activeAnchor.focus();
+    this.activeAnchor = null;
+  }
+
+  handleCardKeydown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      this.closeCard(true);
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const controls = [...this.elements.card.querySelectorAll("button:not([disabled])")];
+    if (!controls.length) return;
+    const first = controls[0];
+    const last = controls.at(-1);
+    if (event.shiftKey && this.shadow.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && this.shadow.activeElement === last) {
+      event.preventDefault();
+      first.focus();
     }
   }
 
@@ -302,7 +333,7 @@ function createTemplate() {
       <div class="caption" hidden aria-live="off" aria-label="Interactive Chinese caption">
         <div class="tokens"></div>
       </div>
-      <article class="card" hidden role="dialog" aria-label="Word definition">
+      <article class="card" hidden role="dialog" aria-modal="true" aria-label="词语释义 / Word definition">
         <div class="card-head">
           <strong class="card-word"></strong>
           <div class="card-reading">

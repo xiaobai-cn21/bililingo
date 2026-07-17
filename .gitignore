@@ -1,5 +1,11 @@
 node_modules/
 dist/
+release/
+release-approval.json
+.chrome-test-profile/
+.chrome-test-profile-edge/
+*.crx
+*.pem
 *.zip
 .DS_Store
 coverage/

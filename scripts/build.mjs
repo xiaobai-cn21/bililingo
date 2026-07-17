@@ -25,7 +25,7 @@ await build({
   legalComments: "eof",
 });
 
-for (const file of ["manifest.json", "popup.html", "options.html", "ui.css"]) {
+for (const file of ["manifest.json", "popup.html", "options.html", "about.html", "ui.css"]) {
   await cp(resolve(source, file), resolve(output, file));
 }
 

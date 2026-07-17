@@ -82,7 +82,11 @@ function readVisiblePlayerCaption(root) {
   if (videoRect.width <= 0 || videoRect.height <= 0) return "";
 
   const candidates = [];
-  for (const element of player.querySelectorAll("span, div, p")) {
+  // The fallback deliberately stays limited to caption-like classes. Scanning every
+  // text node in the player both causes layout churn and mistakes controls/ads for cues.
+  for (const element of player.querySelectorAll(
+    "[class*='subtitle'], [class*='caption'], [data-testid*='subtitle'], [data-testid*='caption']",
+  )) {
     if (IGNORE_SELECTORS.some((ignored) => element.closest(ignored))) continue;
     if (!isVisible(element)) continue;
 
@@ -120,39 +124,114 @@ function isLikelyCaptionRect(rect, videoRect) {
 }
 
 export class CaptionObserver {
-  constructor({ root = document, onCaption, pollInterval = 250 }) {
+  constructor({
+    root = document,
+    onCaption,
+    onState = () => {},
+    pollInterval = 500,
+    clearAfterEmptyReads = 2,
+    noCaptionTimeout = 5000,
+    readCaption = readNativeCaption,
+    now = () => performance.now(),
+  }) {
     this.root = root;
     this.onCaption = onCaption;
     this.pollInterval = pollInterval;
+    this.clearAfterEmptyReads = clearAfterEmptyReads;
+    this.noCaptionTimeout = noCaptionTimeout;
+    this.readCaption = readCaption;
+    this.now = now;
     this.lastText = "";
+    this.emptyReads = 0;
+    this.hasSeenCaption = false;
+    this.reportedNoCaption = false;
+    this.startedAt = 0;
     this.timer = null;
+    this.scheduledCheck = null;
     this.observer = null;
+    this.onState = onState;
   }
 
   start() {
-    if (this.timer) return;
-    const check = () => {
-      const next = readNativeCaption(this.root);
-      if (next && next !== this.lastText) {
-        this.lastText = next;
-        this.onCaption(next);
-      }
-    };
-    this.observer = new MutationObserver(check);
+    if (this.observer) return;
+    this.startedAt = this.now();
+    this.onState("waiting");
+    this.observer = new MutationObserver(() => this.scheduleCheck());
     this.observer.observe(this.root.body ?? this.root, {
       childList: true,
       subtree: true,
       characterData: true,
     });
-    this.timer = setInterval(check, this.pollInterval);
-    check();
+    this.timer = setInterval(() => this.check(), this.pollInterval);
+    this.check();
+  }
+
+  scheduleCheck() {
+    if (this.scheduledCheck) return;
+    this.scheduledCheck = setTimeout(() => {
+      this.scheduledCheck = null;
+      this.check();
+    }, 100);
+  }
+
+  check() {
+    let next;
+    try {
+      next = this.readCaption(this.root);
+    } catch {
+      this.onState("temporarily-unavailable");
+      return;
+    }
+    if (next) {
+      this.emptyReads = 0;
+      this.hasSeenCaption = true;
+      this.reportedNoCaption = false;
+      this.onState("ready");
+      if (!this.timer && this.observer) {
+        this.timer = setInterval(() => this.check(), this.pollInterval);
+      }
+      if (next !== this.lastText) {
+        this.lastText = next;
+        this.onCaption(next);
+      }
+      return;
+    }
+
+    this.emptyReads += 1;
+    if (this.lastText && this.emptyReads >= this.clearAfterEmptyReads) {
+      this.lastText = "";
+      this.onCaption("");
+    }
+    if (
+      !this.hasSeenCaption &&
+      !this.reportedNoCaption &&
+      this.now() - this.startedAt >= this.noCaptionTimeout
+    ) {
+      this.reportedNoCaption = true;
+      this.onState("no-captions");
+      // Keep the mutation observer so enabling native subtitles is detected, but
+      // stop blind polling after the bounded eligibility window.
+      if (this.timer) clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  refresh() {
+    this.lastText = "";
+    this.emptyReads = 0;
+    this.check();
   }
 
   stop() {
     this.observer?.disconnect();
     if (this.timer) clearInterval(this.timer);
+    if (this.scheduledCheck) clearTimeout(this.scheduledCheck);
     this.timer = null;
+    this.scheduledCheck = null;
     this.observer = null;
     this.lastText = "";
+    this.emptyReads = 0;
+    this.hasSeenCaption = false;
+    this.reportedNoCaption = false;
   }
 }

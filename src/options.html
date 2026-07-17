@@ -3,48 +3,49 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bilingo settings</title>
+    <title>Bilingo 设置 / Settings</title>
     <link rel="stylesheet" href="ui.css" />
   </head>
   <body class="options-page">
     <main class="settings-card">
       <header>
         <p class="eyebrow">Bilingo for Bilibili</p>
-        <h1>Learning caption settings</h1>
-        <p class="lede">Customize the overlay. Changes apply immediately to open Bilibili videos.</p>
+        <h1>学习字幕设置 <small>/ Learning caption settings</small></h1>
+        <p class="lede">更改会立即应用到已打开的 Bilibili 视频。Changes apply immediately to open Bilibili videos.</p>
       </header>
 
       <section aria-labelledby="display-heading">
-        <h2 id="display-heading">Display</h2>
+        <h2 id="display-heading">显示 / Display</h2>
         <label class="toggle-row">
-          <span><strong>Show pinyin</strong><small>Display pronunciation above Chinese tokens</small></span>
+          <span><strong>显示拼音 / Show pinyin</strong><small>在汉字上方显示读音 / Display pronunciation above Chinese tokens</small></span>
           <input id="showPinyin" type="checkbox" role="switch" />
         </label>
         <label class="range-row">
-          <span><strong>Text size</strong><output id="fontScaleValue"></output></span>
+          <span><strong>文字大小 / Text size</strong><output id="fontScaleValue"></output></span>
           <input id="fontScale" type="range" min="0.75" max="1.5" step="0.05" />
         </label>
         <label class="range-row">
-          <span><strong>Background opacity</strong><output id="opacityValue"></output></span>
+          <span><strong>背景透明度 / Background opacity</strong><output id="opacityValue"></output></span>
           <input id="opacity" type="range" min="0.45" max="1" step="0.05" />
         </label>
       </section>
 
       <section aria-labelledby="interaction-heading">
-        <h2 id="interaction-heading">Interaction</h2>
+        <h2 id="interaction-heading">交互 / Interaction</h2>
         <label class="toggle-row">
-          <span><strong>Pause when inspecting a word</strong><small>Pause playback when the definition card opens</small></span>
+          <span><strong>查词时暂停 / Pause when inspecting</strong><small>释义卡打开时暂停播放 / Pause when the definition card opens</small></span>
           <input id="pauseOnClick" type="checkbox" role="switch" />
         </label>
       </section>
 
       <aside class="privacy-panel">
-        <strong>Local-first privacy</strong>
-        <p>Bilingo reads captions already displayed by the active Bilibili player. It does not request cookie access, download videos, or upload subtitle text.</p>
+        <strong>本地优先隐私 / Local-first privacy</strong>
+        <p>Bilingo 仅读取当前播放器已经显示的字幕，并在本地处理；不读取 Cookie、不下载视频、不上传字幕。Bilingo processes displayed captions locally and does not request cookies, download video, or upload captions.</p>
+        <p><a href="about.html" target="_blank">隐私、权限与第三方声明 / Privacy, permissions and attributions</a></p>
       </aside>
 
       <div class="actions">
-        <button id="reset" class="secondary" type="button">Reset defaults</button>
+        <button id="reset" class="secondary" type="button">恢复默认 / Reset defaults</button>
         <span id="saved" role="status" aria-live="polite"></span>
       </div>
     </main>

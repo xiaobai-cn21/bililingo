@@ -12,28 +12,40 @@ class BilingoApp {
     this.captionObserver = null;
     this.pageObserver = null;
     this.lastUrl = location.href;
-    this.captionStartedAt = 0;
     this.attaching = false;
+    this.originalPlayerPosition = null;
+    this.onVideoSeeking = null;
+    this.captionState = "paused";
   }
 
   async start() {
     this.settings = await readSettings();
     this.bindStorage();
+    this.bindRuntimeMessages();
     this.observePage();
     await this.attachWhenReady();
   }
 
   bindStorage() {
-    chrome.storage.onChanged.addListener((changes, area) => {
+    chrome.storage.onChanged.addListener((_changes, area) => {
       if (area !== "local") return;
-      const patch = Object.fromEntries(
-        Object.entries(changes).map(([key, value]) => [key, value.newValue]),
-      );
       void readSettings().then((settings) => {
         this.settings = settings;
         this.overlay?.updateSettings(settings);
         this.updateCaptionObserver();
       });
+    });
+  }
+
+  bindRuntimeMessages() {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (!message || message.type !== "bilingo:get-status") return false;
+      sendResponse({
+        eligible: Boolean(this.video && this.player),
+        enabled: Boolean(this.settings?.enabled),
+        captionState: this.settings?.enabled ? this.captionState : "paused",
+      });
+      return false;
     });
   }
 
@@ -71,7 +83,10 @@ class BilingoApp {
     this.detach();
     this.video = video;
     this.player = player;
-    if (getComputedStyle(player).position === "static") player.style.position = "relative";
+    if (getComputedStyle(player).position === "static") {
+      this.originalPlayerPosition = player.style.position;
+      player.style.position = "relative";
+    }
     this.overlay = new LearningOverlay({
       player,
       video,
@@ -86,41 +101,70 @@ class BilingoApp {
       },
     });
     this.overlay.updateSettings(this.settings);
+    this.onVideoSeeking = () => {
+      this.overlay?.clearCaption();
+      this.captionObserver?.refresh();
+    };
+    video.addEventListener("seeking", this.onVideoSeeking);
     this.updateCaptionObserver();
   }
 
   updateCaptionObserver() {
     this.captionObserver?.stop();
     this.captionObserver = null;
-    if (!this.settings?.enabled || !this.overlay) return;
+    if (!this.settings?.enabled || !this.overlay) {
+      this.captionState = "paused";
+      this.overlay?.setStatus("");
+      return;
+    }
     this.captionObserver = new CaptionObserver({
+      root: this.player,
       onCaption: (text) => this.handleCaption(text),
+      onState: (state) => this.handleCaptionState(state),
     });
     this.captionObserver.start();
   }
 
   handleCaption(text) {
-    const now = performance.now();
-    const previousDuration = this.captionStartedAt ? now - this.captionStartedAt : 3500;
-    this.captionStartedAt = now;
+    if (!text) {
+      this.overlay?.clearCaption();
+      return;
+    }
     const tokens = tokenizeChinese(text);
     if (!tokens.length) return;
     this.overlay.showCaption({
       text,
       tokens,
-      startedAt: now,
-      durationMs: Math.min(7000, Math.max(1800, previousDuration)),
     });
+  }
+
+  handleCaptionState(state) {
+    this.captionState = state;
+    const messages = {
+      waiting: "正在等待原生字幕 / Waiting for native captions…",
+      ready: "",
+      "no-captions": "未检测到字幕，请在播放器中开启字幕 / No captions detected",
+      "temporarily-unavailable": "字幕集成暂时不可用 / Caption integration temporarily unavailable",
+    };
+    this.overlay?.setStatus(messages[state] ?? "");
   }
 
   detach() {
     this.captionObserver?.stop();
     this.captionObserver = null;
+    if (this.video && this.onVideoSeeking) {
+      this.video.removeEventListener("seeking", this.onVideoSeeking);
+    }
+    this.onVideoSeeking = null;
     this.overlay?.destroy();
     this.overlay = null;
+    if (this.player && this.originalPlayerPosition !== null) {
+      this.player.style.position = this.originalPlayerPosition;
+    }
+    this.originalPlayerPosition = null;
     this.video = null;
     this.player = null;
-    this.captionStartedAt = 0;
+    this.captionState = this.settings?.enabled ? "waiting" : "paused";
   }
 }
 

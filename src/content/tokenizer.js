@@ -26,13 +26,3 @@ function segment(text, locale) {
   }
   return [...text];
 }
-
-export function activeTokenIndex(tokens, progress) {
-  if (!tokens.length) return -1;
-  const eligible = tokens
-    .map((token, index) => ({ token, index }))
-    .filter(({ token }) => token.selectable);
-  if (!eligible.length) return -1;
-  const safeProgress = Math.min(0.999999, Math.max(0, Number(progress) || 0));
-  return eligible[Math.floor(safeProgress * eligible.length)].index;
-}

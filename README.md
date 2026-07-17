@@ -8,7 +8,6 @@ A local-first Manifest V3 Chrome extension that adds interactive pinyin learning
 - Reads caption text already rendered by the active Bilibili player.
 - Generates contextual token boundaries with `Intl.Segmenter` and tone-marked pinyin with `pinyin-pro`.
 - Displays a draggable, responsive caption overlay.
-- Estimates active-token highlighting when source captions do not expose word timing.
 - Opens a local vocabulary card for selected tokens.
 - Stores display preferences in Chrome local storage.
 - Does not request cookie, network interception, browsing history, or broad host permissions.
@@ -23,6 +22,8 @@ npm run test:all
 ```
 
 The unpacked extension is built to `dist/`.
+
+For internal testing, `npm run package:beta` also creates a ZIP under `release/`. Public packaging must use `npm run release`; it intentionally fails until the production dictionary and recorded legal, security, privacy, support, platform, and rollback gates are complete. See [RELEASE.md](RELEASE.md).
 
 ## Install in Chrome
 

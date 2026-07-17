@@ -8,6 +8,7 @@ const controls = {
 };
 const saved = document.querySelector("#saved");
 let savedTimer;
+let saveQueue = Promise.resolve();
 
 function render(settings) {
   for (const [key, control] of Object.entries(controls)) {
@@ -25,18 +26,30 @@ async function save() {
       control.type === "checkbox" ? control.checked : Number(control.value),
     ]),
   );
-  const settings = await writeSettings(patch);
-  render(settings);
-  saved.textContent = "Saved";
-  clearTimeout(savedTimer);
-  savedTimer = setTimeout(() => (saved.textContent = ""), 1500);
+  const operation = saveQueue.then(() => writeSettings(patch));
+  saveQueue = operation.catch(() => {});
+  try {
+    const settings = await operation;
+    render(settings);
+    saved.textContent = "已保存 / Saved";
+    clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => (saved.textContent = ""), 1500);
+  } catch {
+    saved.textContent = "保存失败，请重试 / Could not save";
+  }
 }
 
 for (const control of Object.values(controls)) control.addEventListener("input", save);
 document.querySelector("#reset").addEventListener("click", async () => {
-  const settings = await writeSettings(DEFAULT_SETTINGS);
-  render(settings);
-  saved.textContent = "Defaults restored";
+  const operation = saveQueue.then(() => writeSettings(DEFAULT_SETTINGS));
+  saveQueue = operation.catch(() => {});
+  try {
+    const settings = await operation;
+    render(settings);
+    saved.textContent = "已恢复默认 / Defaults restored";
+  } catch {
+    saved.textContent = "重置失败，请重试 / Could not reset";
+  }
 });
 
 async function initialize() {
