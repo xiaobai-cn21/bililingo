@@ -39,7 +39,8 @@ export function findPlayer(video) {
 export function readNativeCaption(root = document) {
   for (const selector of NATIVE_TEXT_SELECTORS) {
     for (const element of root.querySelectorAll(selector)) {
-      if (IGNORE_SELECTORS.some((ignored) => element.closest(ignored))) continue;
+      if (IGNORE_SELECTORS.some((ignored) => element.closest(ignored)))
+        continue;
       if (!isVisible(element)) continue;
       const text = normalizeCaption(element.textContent);
       if (isLikelyCaption(text)) return text;
@@ -68,7 +69,8 @@ function isVisible(element) {
 }
 
 function isLikelyCaption(text) {
-  if (!(text.length > 0 && text.length <= 240 && /[\p{L}\p{N}]/u.test(text))) return false;
+  if (!(text.length > 0 && text.length <= 240 && /[\p{L}\p{N}]/u.test(text)))
+    return false;
   if (/^(?:关闭|字幕设置|中文\s*AI|自动|倍速|画质)$/u.test(text)) return false;
   return true;
 }
@@ -95,15 +97,24 @@ function readVisiblePlayerCaption(root) {
 
     const rect = element.getBoundingClientRect();
     if (!isLikelyCaptionRect(rect, videoRect)) continue;
-    if (element.children.length && [...element.children].some((child) => normalizeCaption(child.textContent) === text)) {
+    if (
+      element.children.length &&
+      [...element.children].some(
+        (child) => normalizeCaption(child.textContent) === text,
+      )
+    ) {
       continue;
     }
     candidates.push({ element, text, rect });
   }
 
   candidates.sort((a, b) => {
-    const aSubtitleClass = /subtitle|caption/i.test(String(a.element.className));
-    const bSubtitleClass = /subtitle|caption/i.test(String(b.element.className));
+    const aSubtitleClass = /subtitle|caption/i.test(
+      String(a.element.className),
+    );
+    const bSubtitleClass = /subtitle|caption/i.test(
+      String(b.element.className),
+    );
     if (aSubtitleClass !== bSubtitleClass) return aSubtitleClass ? -1 : 1;
     return b.rect.width - a.rect.width;
   });
@@ -118,12 +129,28 @@ function isLikelyCaptionRect(rect, videoRect) {
     rect.right > videoRect.left &&
     rect.top < videoRect.bottom &&
     rect.bottom > videoRect.top;
-  const inCaptionArea = rect.top >= lowerVideoStart && rect.bottom <= videoRect.bottom + 8;
-  const reasonableSize = rect.width >= 24 && rect.height >= 10 && rect.height <= videoRect.height * 0.25;
+  const inCaptionArea =
+    rect.top >= lowerVideoStart && rect.bottom <= videoRect.bottom + 8;
+  const reasonableSize =
+    rect.width >= 24 &&
+    rect.height >= 10 &&
+    rect.height <= videoRect.height * 0.25;
   return overlapsVideo && inCaptionArea && reasonableSize;
 }
 
 export class CaptionObserver {
+  /**
+   * @param {{
+   *   root?: Document | Element,
+   *   onCaption: (text: string) => void,
+   *   onState?: (state: "waiting" | "ready" | "no-captions" | "temporarily-unavailable") => void,
+   *   pollInterval?: number,
+   *   clearAfterEmptyReads?: number,
+   *   noCaptionTimeout?: number,
+   *   readCaption?: (root: Document | Element) => string,
+   *   now?: () => number
+   * }} options
+   */
   constructor({
     root = document,
     onCaption,
@@ -157,7 +184,9 @@ export class CaptionObserver {
     this.startedAt = this.now();
     this.onState("waiting");
     this.observer = new MutationObserver(() => this.scheduleCheck());
-    this.observer.observe(this.root.body ?? this.root, {
+    const observationRoot =
+      this.root instanceof Document ? this.root.body : this.root;
+    this.observer.observe(observationRoot, {
       childList: true,
       subtree: true,
       characterData: true,

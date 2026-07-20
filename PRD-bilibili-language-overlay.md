@@ -136,20 +136,20 @@ Messages must not suggest bypassing a Bilibili restriction.
 
 ### P0: required for MVP
 
-| ID | Requirement | Acceptance criterion |
-|---|---|---|
-| F-01 | Detect supported Bilibili video pages and player replacement/navigation events | Works during direct navigation and Bilibili SPA navigation without a full reload |
-| F-02 | Require a visible user activation before enabling the enhanced overlay | No subtitle processing or source request occurs before activation, except local eligibility detection |
-| F-03 | Use an accessible caption track associated with the video currently playing | Displayed text matches the selected source track and current video part |
-| F-04 | Synchronize cues with player time, seek, pause, playback-rate changes, episode/part changes, and replay | Correct cue is displayed within 250 ms for 98% of sampled transitions |
-| F-05 | Segment Simplified or Traditional Chinese into learner-friendly tokens | Users can select individual tokens; punctuation is not exposed as a vocabulary word |
-| F-06 | Generate tone-marked pinyin locally | Polyphonic uncertainty is handled by contextual segmentation; low-confidence readings can be marked |
-| F-07 | Render responsive overlay in standard and fullscreen layouts | Overlay remains usable at 1280x720 through 4K and browser zoom 80%-200% |
-| F-08 | Open a token definition card | Card opens within 150 ms when data is cached and within 800 ms at p95 when a remote licensed API is required |
-| F-09 | Store preferences locally | Settings survive browser restart and can be reset |
-| F-10 | Fail without affecting native playback | Disabling or crashing the overlay leaves player controls, subtitles, and video functional |
-| F-11 | Provide an extension popup with on/off state and settings shortcut | Current-tab eligibility and activation state are clear |
-| F-12 | Provide privacy notice, terms, third-party attribution, and support link | All are accessible before Chrome Web Store submission |
+| ID   | Requirement                                                                                             | Acceptance criterion                                                                                         |
+| ---- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| F-01 | Detect supported Bilibili video pages and player replacement/navigation events                          | Works during direct navigation and Bilibili SPA navigation without a full reload                             |
+| F-02 | Require a visible user activation before enabling the enhanced overlay                                  | No subtitle processing or source request occurs before activation, except local eligibility detection        |
+| F-03 | Use an accessible caption track associated with the video currently playing                             | Displayed text matches the selected source track and current video part                                      |
+| F-04 | Synchronize cues with player time, seek, pause, playback-rate changes, episode/part changes, and replay | Correct cue is displayed within 250 ms for 98% of sampled transitions                                        |
+| F-05 | Segment Simplified or Traditional Chinese into learner-friendly tokens                                  | Users can select individual tokens; punctuation is not exposed as a vocabulary word                          |
+| F-06 | Generate tone-marked pinyin locally                                                                     | Polyphonic uncertainty is handled by contextual segmentation; low-confidence readings can be marked          |
+| F-07 | Render responsive overlay in standard and fullscreen layouts                                            | Overlay remains usable at 1280x720 through 4K and browser zoom 80%-200%                                      |
+| F-08 | Open a token definition card                                                                            | Card opens within 150 ms when data is cached and within 800 ms at p95 when a remote licensed API is required |
+| F-09 | Store preferences locally                                                                               | Settings survive browser restart and can be reset                                                            |
+| F-10 | Fail without affecting native playback                                                                  | Disabling or crashing the overlay leaves player controls, subtitles, and video functional                    |
+| F-11 | Provide an extension popup with on/off state and settings shortcut                                      | Current-tab eligibility and activation state are clear                                                       |
+| F-12 | Provide privacy notice, terms, third-party attribution, and support link                                | All are accessible before Chrome Web Store submission                                                        |
 
 ### P1: post-MVP
 
@@ -393,16 +393,16 @@ All are mandatory:
 
 ## 15. Risks and mitigations
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Bilibili changes player internals | Overlay stops working | Adapter isolation, staged rollout, diagnostics, disable-only kill switch |
+| Risk                                      | Impact                                 | Mitigation                                                                                       |
+| ----------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Bilibili changes player internals         | Overlay stops working                  | Adapter isolation, staged rollout, diagnostics, disable-only kill switch                         |
 | Bilibili blocks or objects to integration | Product interruption or legal exposure | Written authorization, local/user-initiated access, no bulk collection, immediate stop on denial |
-| Chrome Web Store rejection | Distribution blocked | MV3, narrow single purpose, minimum permissions, accurate privacy disclosures |
-| Caption copyright/licensing issue | Legal exposure | Transient local processing, no corpus, no subtitle export, counsel review |
-| LexiRise IP/trade-dress claim | Rework or dispute | Original brand, layout details, assets, copy, and code; document independent design |
-| Subtitle/pinyin error | Learner confusion | Confidence handling, contextual tokenizer, correction feedback without uploading full captions |
-| Extension breaks player | Poor experience | Shadow DOM, scoped observers, performance budgets, fail-open behavior |
-| Sensitive data leakage | User harm | No cookie permission, local processing, strict event schema, security testing |
+| Chrome Web Store rejection                | Distribution blocked                   | MV3, narrow single purpose, minimum permissions, accurate privacy disclosures                    |
+| Caption copyright/licensing issue         | Legal exposure                         | Transient local processing, no corpus, no subtitle export, counsel review                        |
+| LexiRise IP/trade-dress claim             | Rework or dispute                      | Original brand, layout details, assets, copy, and code; document independent design              |
+| Subtitle/pinyin error                     | Learner confusion                      | Confidence handling, contextual tokenizer, correction feedback without uploading full captions   |
+| Extension breaks player                   | Poor experience                        | Shadow DOM, scoped observers, performance budgets, fail-open behavior                            |
+| Sensitive data leakage                    | User harm                              | No cookie permission, local processing, strict event schema, security testing                    |
 
 ## 16. Open decisions
 

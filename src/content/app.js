@@ -1,9 +1,9 @@
 import { CaptionObserver, findPlayer, findVideo } from "./caption-source.js";
 import { LearningOverlay } from "./overlay.js";
 import { readSettings, writeSettings } from "../shared/settings.js";
-import { tokenizeChinese } from "./tokenizer.js";
+import { tokenizeChineseWithDictionary } from "./tokenizer.js";
 
-class BilingoApp {
+export class BilingoApp {
   constructor() {
     this.settings = null;
     this.video = null;
@@ -16,6 +16,7 @@ class BilingoApp {
     this.originalPlayerPosition = null;
     this.onVideoSeeking = null;
     this.captionState = "paused";
+    this.captionRequest = 0;
   }
 
   async start() {
@@ -55,9 +56,13 @@ class BilingoApp {
         this.lastUrl = location.href;
         this.detach();
       }
-      if (!this.overlay || !document.contains(this.video)) void this.attachWhenReady();
+      if (!this.overlay || !document.contains(this.video))
+        void this.attachWhenReady();
     });
-    this.pageObserver.observe(document.documentElement, { childList: true, subtree: true });
+    this.pageObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
   }
 
   async attachWhenReady() {
@@ -119,18 +124,20 @@ class BilingoApp {
     }
     this.captionObserver = new CaptionObserver({
       root: this.player,
-      onCaption: (text) => this.handleCaption(text),
+      onCaption: (text) => void this.handleCaption(text),
       onState: (state) => this.handleCaptionState(state),
     });
     this.captionObserver.start();
   }
 
-  handleCaption(text) {
+  async handleCaption(text) {
+    const request = ++this.captionRequest;
     if (!text) {
       this.overlay?.clearCaption();
       return;
     }
-    const tokens = tokenizeChinese(text);
+    const tokens = await tokenizeChineseWithDictionary(text);
+    if (request !== this.captionRequest) return;
     if (!tokens.length) return;
     this.overlay.showCaption({
       text,
@@ -143,13 +150,16 @@ class BilingoApp {
     const messages = {
       waiting: "正在等待原生字幕 / Waiting for native captions…",
       ready: "",
-      "no-captions": "未检测到字幕，请在播放器中开启字幕 / No captions detected",
-      "temporarily-unavailable": "字幕集成暂时不可用 / Caption integration temporarily unavailable",
+      "no-captions":
+        "未检测到字幕，请在播放器中开启字幕 / No captions detected",
+      "temporarily-unavailable":
+        "字幕集成暂时不可用 / Caption integration temporarily unavailable",
     };
     this.overlay?.setStatus(messages[state] ?? "");
   }
 
   detach() {
+    this.captionRequest += 1;
     this.captionObserver?.stop();
     this.captionObserver = null;
     if (this.video && this.onVideoSeeking) {
@@ -168,7 +178,7 @@ class BilingoApp {
   }
 }
 
-if (location.hostname === "www.bilibili.com") {
+if (globalThis.location?.hostname === "www.bilibili.com") {
   new BilingoApp().start().catch((error) => {
     console.error("Bilingo failed to initialize", error);
   });

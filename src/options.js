@@ -1,12 +1,22 @@
-import { DEFAULT_SETTINGS, readSettings, writeSettings } from "./shared/settings.js";
+import {
+  DEFAULT_SETTINGS,
+  readSettings,
+  writeSettings,
+} from "./shared/settings.js";
 
 const controls = {
-  showPinyin: document.querySelector("#showPinyin"),
-  pauseOnClick: document.querySelector("#pauseOnClick"),
-  fontScale: document.querySelector("#fontScale"),
-  opacity: document.querySelector("#opacity"),
+  showPinyin: /** @type {HTMLInputElement} */ (
+    document.querySelector("#showPinyin")
+  ),
+  pauseOnClick: /** @type {HTMLInputElement} */ (
+    document.querySelector("#pauseOnClick")
+  ),
+  fontScale: /** @type {HTMLInputElement} */ (
+    document.querySelector("#fontScale")
+  ),
+  opacity: /** @type {HTMLInputElement} */ (document.querySelector("#opacity")),
 };
-const saved = document.querySelector("#saved");
+const saved = /** @type {HTMLElement} */ (document.querySelector("#saved"));
 let savedTimer;
 let saveQueue = Promise.resolve();
 
@@ -15,8 +25,10 @@ function render(settings) {
     if (control.type === "checkbox") control.checked = settings[key];
     else control.value = String(settings[key]);
   }
-  document.querySelector("#fontScaleValue").textContent = `${Math.round(settings.fontScale * 100)}%`;
-  document.querySelector("#opacityValue").textContent = `${Math.round(settings.opacity * 100)}%`;
+  document.querySelector("#fontScaleValue").textContent =
+    `${Math.round(settings.fontScale * 100)}%`;
+  document.querySelector("#opacityValue").textContent =
+    `${Math.round(settings.opacity * 100)}%`;
 }
 
 async function save() {
@@ -27,7 +39,10 @@ async function save() {
     ]),
   );
   const operation = saveQueue.then(() => writeSettings(patch));
-  saveQueue = operation.catch(() => {});
+  saveQueue = operation.then(
+    () => undefined,
+    () => undefined,
+  );
   try {
     const settings = await operation;
     render(settings);
@@ -39,10 +54,14 @@ async function save() {
   }
 }
 
-for (const control of Object.values(controls)) control.addEventListener("input", save);
+for (const control of Object.values(controls))
+  control.addEventListener("input", save);
 document.querySelector("#reset").addEventListener("click", async () => {
   const operation = saveQueue.then(() => writeSettings(DEFAULT_SETTINGS));
-  saveQueue = operation.catch(() => {});
+  saveQueue = operation.then(
+    () => undefined,
+    () => undefined,
+  );
   try {
     const settings = await operation;
     render(settings);

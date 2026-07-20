@@ -1,0 +1,7 @@
+coverage/
+data/
+dist/
+node_modules/
+release/
+src/content/cedict-data.js
+package-lock.json

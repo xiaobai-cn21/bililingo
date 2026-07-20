@@ -47,8 +47,49 @@ test("fails open when the caption adapter throws", () => {
     root: {},
     onCaption: () => assert.fail("must not emit a caption"),
     onState: (state) => states.push(state),
-    readCaption: () => { throw new Error("player DOM changed"); },
+    readCaption: () => {
+      throw new Error("player DOM changed");
+    },
   });
   assert.doesNotThrow(() => observer.check());
   assert.deepEqual(states, ["temporarily-unavailable"]);
+});
+
+test("starts, refreshes and stops observation cleanly", (t) => {
+  const originalDocument = globalThis.Document;
+  const originalMutationObserver = globalThis.MutationObserver;
+  const observed = [];
+  t.after(() => {
+    globalThis.Document = originalDocument;
+    globalThis.MutationObserver = originalMutationObserver;
+  });
+  globalThis.Document = class {};
+  globalThis.MutationObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+    }
+    observe(root) {
+      observed.push(root);
+    }
+    disconnect() {
+      observed.push("disconnected");
+    }
+  };
+
+  const states = [];
+  const root = {};
+  const observer = new CaptionObserver({
+    root,
+    onCaption: () => {},
+    onState: (state) => states.push(state),
+    readCaption: () => "",
+    pollInterval: 10_000,
+  });
+  observer.start();
+  observer.refresh();
+  observer.stop();
+
+  assert.equal(states[0], "waiting");
+  assert.equal(observed[0], root);
+  assert.equal(observed.at(-1), "disconnected");
 });

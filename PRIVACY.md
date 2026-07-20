@@ -1,10 +1,10 @@
-# Bilingo for Bilibili — MVP privacy notice
+# Bilingo for Bilibili privacy notice
 
 Last updated: 2026-07-15
 
-The MVP processes subtitle text displayed on the Bilibili video page currently open in the user's browser. It uses that text locally to create word boundaries, pinyin, and vocabulary cards.
+Bilingo processes subtitle text displayed on the Bilibili video page currently open in the user's browser. It uses that text locally to create word boundaries, pinyin, and vocabulary cards.
 
-The MVP does not operate a backend and does not collect or transmit:
+Bilingo does not operate a backend and does not collect or transmit:
 
 - Bilibili passwords, cookies, tokens, or account identifiers;
 - video or audio content;
@@ -14,4 +14,7 @@ The MVP does not operate a backend and does not collect or transmit:
 
 Display preferences are stored locally through Chrome's extension storage. Users can remove them by resetting settings or uninstalling the extension.
 
-This development notice must be reviewed and replaced with the company's approved legal identity, contact information, retention terms, and jurisdiction-specific disclosures before public distribution.
+The public website version of this notice must identify the product owner,
+provide a support/privacy contact, state the applicable jurisdiction and remain
+consistent with the Chrome Web Store privacy disclosures. Public release is
+blocked until those external details are reviewed and published.

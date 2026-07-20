@@ -2,31 +2,65 @@ import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const manifest = JSON.parse(await readFile(resolve(root, "src/manifest.json"), "utf8"));
-const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
+const manifest = JSON.parse(
+  await readFile(resolve(root, "src/manifest.json"), "utf8"),
+);
+const packageJson = JSON.parse(
+  await readFile(resolve(root, "package.json"), "utf8"),
+);
 const errors = [];
 
 if (manifest.manifest_version !== 3) errors.push("manifest_version must be 3");
-if (manifest.version !== packageJson.version) errors.push("manifest and package versions must match");
-if (manifest.permissions?.some((permission) => ["cookies", "webRequest", "tabs", "history"].includes(permission))) {
+if (manifest.version !== packageJson.version)
+  errors.push("manifest and package versions must match");
+if (
+  manifest.permissions?.some((permission) =>
+    ["cookies", "webRequest", "tabs", "history"].includes(permission),
+  )
+) {
   errors.push("manifest contains a prohibited broad/sensitive permission");
 }
-if (manifest.host_permissions?.length) errors.push("MVP must not declare host_permissions");
-if (manifest.content_scripts?.some(({ matches }) => matches.some((match) => match.includes("<all_urls>")))) {
+if (manifest.host_permissions?.length)
+  errors.push("MVP must not declare host_permissions");
+if (
+  manifest.content_scripts?.some(({ matches }) =>
+    matches.some((match) => match.includes("<all_urls>")),
+  )
+) {
   errors.push("content scripts must not use <all_urls>");
 }
 
 const referencedFiles = [
   manifest.action.default_popup,
   manifest.options_ui.page,
-  ...manifest.content_scripts.flatMap(({ js = [], css = [] }) => [...js, ...css]),
+  manifest.background?.service_worker,
+  ...manifest.content_scripts.flatMap(({ js = [], css = [] }) => [
+    ...js,
+    ...css,
+  ]),
 ];
 for (const page of ["popup.html", "options.html"]) {
   const html = await readFile(resolve(root, "src", page), "utf8");
-  if (!html.includes("about.html")) errors.push(`${page} must link to the in-product privacy notice`);
+  if (!html.includes("about.html"))
+    errors.push(`${page} must link to the in-product privacy notice`);
+}
+const about = await readFile(resolve(root, "src", "about.html"), "utf8");
+for (const notice of [
+  "CC-CEDICT",
+  "CC BY-SA 4.0",
+  "MIT License",
+  "THIRD_PARTY_NOTICES.md",
+]) {
+  if (!about.includes(notice))
+    errors.push(`about.html must include notice: ${notice}`);
 }
 for (const file of referencedFiles) {
-  const sourceFile = file === "content.js" ? "content/app.js" : file;
+  const sourceFile =
+    file === "content.js"
+      ? "content/app.js"
+      : file === "background.js"
+        ? "background.js"
+        : file;
   try {
     await access(resolve(root, "src", sourceFile));
   } catch {

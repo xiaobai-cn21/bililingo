@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "description": "Learn Mandarin from captions while watching Bilibili videos.",
   "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "content_scripts": [
     {
       "matches": ["https://www.bilibili.com/video/*"],

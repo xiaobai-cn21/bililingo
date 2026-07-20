@@ -1,0 +1,8 @@
+Bilingo for Bilibili
+Copyright 2026 Bilingo contributors
+
+The software code is licensed under the MIT License.
+
+The generated CC-CEDICT dataset in src/content/cedict-data.js is not
+licensed under the MIT License. It is distributed under CC BY-SA 4.0.
+See THIRD_PARTY_NOTICES.md for attribution and license details.

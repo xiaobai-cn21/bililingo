@@ -4,20 +4,53 @@
   "private": true,
   "type": "module",
   "description": "A local-first Chinese learning overlay for Bilibili videos.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:cedict": "node scripts/build-cedict.mjs",
     "check": "node scripts/check.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepare": "husky",
+    "typecheck": "tsc -p tsconfig.json",
     "release:check": "node scripts/release-check.mjs",
     "package:beta": "npm run build && node scripts/package.mjs",
-    "release": "npm run test:all && npm run release:check && node scripts/package.mjs",
-    "test": "node --test",
-    "test:all": "npm run check && npm test && npm run build"
+    "release": "npm run test:all && npm run test:e2e && npm run release:check && node scripts/package.mjs",
+    "test": "npm run test:unit",
+    "test:unit": "node --test",
+    "test:coverage": "c8 --all --include=src/**/*.js --exclude=src/content/cedict-data.js --exclude=src/background.js --check-coverage --lines=80 --functions=75 --branches=70 node --test",
+    "test:e2e": "npm run build && playwright test",
+    "quality": "npm run check && npm run lint && npm run format:check && npm run typecheck",
+    "test:all": "npm run quality && npm run test:coverage && npm run build"
+  },
+  "lint-staged": {
+    "*.{js,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,html,json,md,yaml,yml}": "prettier --write"
   },
   "dependencies": {
     "pinyin-pro": "^3.27.0"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
+    "@types/chrome": "^0.2.2",
+    "@types/node": "^26.1.1",
+    "c8": "^12.0.0",
+    "esbuild": "^0.25.0",
+    "eslint": "^10.7.0",
+    "globals": "^17.7.0",
+    "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.9.5",
+    "typescript": "^7.0.2"
   }
 }

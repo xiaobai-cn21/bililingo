@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { tokenizeChinese } from "../src/content/tokenizer.js";
+import {
+  tokenizeChinese,
+  tokenizeChineseWithDictionary,
+  tokensFromSegments,
+} from "../src/content/tokenizer.js";
 
 test("tokenizes Chinese and generates tone-marked pinyin", () => {
   const tokens = tokenizeChinese("但是我没有卡");
@@ -19,4 +23,37 @@ test("keeps punctuation non-selectable", () => {
 
 test("handles empty captions", () => {
   assert.deepEqual(tokenizeChinese("   "), []);
+});
+
+test("uses dictionary segments returned by the extension worker", async (t) => {
+  const originalChrome = globalThis.chrome;
+  t.after(() => {
+    globalThis.chrome = originalChrome;
+  });
+  globalThis.chrome = {
+    runtime: {
+      sendMessage: async () => ({ segments: ["我", "喜欢", "中文"] }),
+    },
+  };
+
+  const tokens = await tokenizeChineseWithDictionary("我喜欢中文");
+  assert.deepEqual(
+    tokens.map(({ surface }) => surface),
+    ["我", "喜欢", "中文"],
+  );
+  assert.match(tokens[1].pinyin, /xǐ huan/u);
+});
+
+test("falls back when worker segmentation is invalid", async (t) => {
+  const originalChrome = globalThis.chrome;
+  t.after(() => {
+    globalThis.chrome = originalChrome;
+  });
+  globalThis.chrome = {
+    runtime: { sendMessage: async () => ({ segments: [1] }) },
+  };
+
+  const tokens = await tokenizeChineseWithDictionary("喜欢");
+  assert.equal(tokens.map(({ surface }) => surface).join(""), "喜欢");
+  assert.deepEqual(tokensFromSegments([]), []);
 });

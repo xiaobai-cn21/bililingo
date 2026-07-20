@@ -12,7 +12,12 @@ export function normalizeSettings(input = {}) {
     enabled: Boolean(input.enabled ?? DEFAULT_SETTINGS.enabled),
     showPinyin: Boolean(input.showPinyin ?? DEFAULT_SETTINGS.showPinyin),
     pauseOnClick: Boolean(input.pauseOnClick ?? DEFAULT_SETTINGS.pauseOnClick),
-    fontScale: clampNumber(input.fontScale, 0.75, 1.5, DEFAULT_SETTINGS.fontScale),
+    fontScale: clampNumber(
+      input.fontScale,
+      0.75,
+      1.5,
+      DEFAULT_SETTINGS.fontScale,
+    ),
     opacity: clampNumber(input.opacity, 0.45, 1, DEFAULT_SETTINGS.opacity),
     verticalOffset: clampNumber(
       input.verticalOffset,
@@ -25,7 +30,9 @@ export function normalizeSettings(input = {}) {
 
 function clampNumber(value, min, max, fallback) {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+  return Number.isFinite(parsed)
+    ? Math.min(max, Math.max(min, parsed))
+    : fallback;
 }
 
 export async function readSettings() {

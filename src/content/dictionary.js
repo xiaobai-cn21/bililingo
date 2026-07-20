@@ -1,7 +1,6 @@
-import { CEDICT } from "./cedict-data.js";
+import { MESSAGE_TYPES } from "../shared/protocol.js";
 
-// Original concise starter definitions kept as a small fallback for custom
-// product wording and tests.
+// Concise definitions kept as an offline fallback if the service worker restarts.
 const DEFINITIONS = Object.freeze({
   我: ["I; me", "pronoun"],
   你: ["you", "pronoun"],
@@ -51,25 +50,52 @@ export const DICTIONARY_METADATA = Object.freeze({
   name: "CC-CEDICT",
   productionReady: true,
   license: "Creative Commons Attribution-ShareAlike 4.0 International",
+  licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
+  sourceUrl: "https://www.mdbg.net/chinese/dictionary?page=cc-cedict",
+  sourceSha256:
+    "1eff4f3e4f367e0c63465a14713bef2d1a71f31ded4f6e5b0dac9f4d3c511207",
 });
 
-export function lookupWord(surface) {
+export async function lookupWord(surface) {
   const normalized = String(surface ?? "").trim();
-  const cedictEntry = CEDICT[normalized];
-  if (cedictEntry) {
-    return {
-      meaning: cedictEntry[1],
-      partOfSpeech: "",
-      source: DICTIONARY_METADATA.name,
-    };
+  if (globalThis.chrome?.runtime?.sendMessage) {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.lookupWord,
+        surface: normalized,
+      });
+      if (isDefinition(response)) return response;
+    } catch {
+      // The local fallback keeps lookup useful if the service worker restarts.
+    }
   }
 
+  return lookupFallback(normalized);
+}
+
+export function lookupFallback(surface) {
+  const normalized = String(surface ?? "").trim();
   const entry = DEFINITIONS[normalized];
-  if (entry) return { meaning: entry[0], partOfSpeech: entry[1], source: "Bilingo starter lexicon" };
+  if (entry)
+    return {
+      meaning: entry[0],
+      partOfSpeech: entry[1],
+      source: "Bilingo offline fallback",
+    };
 
   return {
     meaning: "Definition unavailable in the local dictionary.",
     partOfSpeech: "",
     source: "Local lookup",
   };
+}
+
+function isDefinition(value) {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    typeof value.meaning === "string" &&
+    typeof value.partOfSpeech === "string" &&
+    value.source === DICTIONARY_METADATA.name,
+  );
 }

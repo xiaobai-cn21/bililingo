@@ -5,7 +5,9 @@ import { deflateRawSync } from "node:zlib";
 const root = resolve(import.meta.dirname, "..");
 const dist = resolve(root, "dist");
 const release = resolve(root, "release");
-const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
+const packageJson = JSON.parse(
+  await readFile(resolve(root, "package.json"), "utf8"),
+);
 const files = await walk(dist);
 const localParts = [];
 const centralParts = [];
@@ -57,10 +59,12 @@ console.log(`Packaged ${files.length} files in ${output}`);
 
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
-  const paths = await Promise.all(entries.map((entry) => {
-    const path = resolve(directory, entry.name);
-    return entry.isDirectory() ? walk(path) : [path];
-  }));
+  const paths = await Promise.all(
+    entries.map((entry) => {
+      const path = resolve(directory, entry.name);
+      return entry.isDirectory() ? walk(path) : [path];
+    }),
+  );
   return paths.flat().sort();
 }
 
@@ -68,7 +72,8 @@ function crc32(buffer) {
   let crc = 0xffffffff;
   for (const byte of buffer) {
     crc ^= byte;
-    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    for (let bit = 0; bit < 8; bit += 1)
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
   }
   return (crc ^ 0xffffffff) >>> 0;
 }

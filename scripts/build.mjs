@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { deflateSync } from "node:zlib";
 
@@ -26,16 +26,52 @@ await build({
   legalComments: "eof",
 });
 
-for (const file of ["manifest.json", "popup.html", "options.html", "about.html", "ui.css"]) {
+await build({
+  entryPoints: [{ in: "src/background.js", out: "background" }],
+  absWorkingDir: root,
+  bundle: true,
+  outdir: output,
+  format: "esm",
+  target: "chrome120",
+  minify: true,
+  sourcemap: false,
+  legalComments: "eof",
+});
+
+for (const file of [
+  "manifest.json",
+  "popup.html",
+  "options.html",
+  "about.html",
+  "ui.css",
+]) {
   await cp(resolve(source, file), resolve(output, file));
+}
+for (const file of ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"]) {
+  await cp(resolve(root, file), resolve(output, file));
 }
 
 for (const size of [16, 32, 48, 128]) {
   await writeFile(resolve(output, `icons/icon${size}.png`), makeIcon(size));
 }
 
-const manifest = JSON.parse(await readFile(resolve(output, "manifest.json"), "utf8"));
-if (manifest.manifest_version !== 3) throw new Error("Build requires Manifest V3");
+const manifest = JSON.parse(
+  await readFile(resolve(output, "manifest.json"), "utf8"),
+);
+if (manifest.manifest_version !== 3)
+  throw new Error("Build requires Manifest V3");
+const contentBytes = (await stat(resolve(output, "content.js"))).size;
+const backgroundBytes = (await stat(resolve(output, "background.js"))).size;
+if (contentBytes > 500_000) {
+  throw new Error(
+    `content.js exceeds the 500 KB page-load budget: ${contentBytes} bytes`,
+  );
+}
+if (backgroundBytes > 20_000_000) {
+  throw new Error(
+    `background.js exceeds the 20 MB dictionary budget: ${backgroundBytes} bytes`,
+  );
+}
 console.log(`Built ${manifest.name} ${manifest.version} in ${output}`);
 
 function makeIcon(size) {
@@ -46,20 +82,28 @@ function makeIcon(size) {
       const offset = 1 + x * 4;
       const radius = size * 0.22;
       const inside =
-        x >= radius || y >= radius || (x - radius) ** 2 + (y - radius) ** 2 <= radius ** 2;
+        x >= radius ||
+        y >= radius ||
+        (x - radius) ** 2 + (y - radius) ** 2 <= radius ** 2;
       const gradient = (x + y) / (size * 2);
       row[offset] = inside ? Math.round(74 + 180 * gradient) : 0;
       row[offset + 1] = inside ? Math.round(222 - 55 * gradient) : 0;
       row[offset + 2] = inside ? Math.round(238 - 160 * gradient) : 0;
       row[offset + 3] = inside ? 255 : 0;
       const isB =
-        x > size * 0.3 && x < size * 0.42 && y > size * 0.2 && y < size * 0.8 ||
-        x >= size * 0.4 && x < size * 0.67 &&
+        (x > size * 0.3 &&
+          x < size * 0.42 &&
+          y > size * 0.2 &&
+          y < size * 0.8) ||
+        (x >= size * 0.4 &&
+          x < size * 0.67 &&
           ((y > size * 0.2 && y < size * 0.31) ||
             (y > size * 0.44 && y < size * 0.55) ||
-            (y > size * 0.69 && y < size * 0.8)) ||
-        x > size * 0.62 && x < size * 0.72 &&
-          ((y >= size * 0.28 && y <= size * 0.47) || (y >= size * 0.53 && y <= size * 0.72));
+            (y > size * 0.69 && y < size * 0.8))) ||
+        (x > size * 0.62 &&
+          x < size * 0.72 &&
+          ((y >= size * 0.28 && y <= size * 0.47) ||
+            (y >= size * 0.53 && y <= size * 0.72)));
       if (isB && inside) {
         row[offset] = 8;
         row[offset + 1] = 20;
@@ -94,7 +138,8 @@ function crc32(buffer) {
   let crc = 0xffffffff;
   for (const byte of buffer) {
     crc ^= byte;
-    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    for (let bit = 0; bit < 8; bit += 1)
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
   }
   return (crc ^ 0xffffffff) >>> 0;
 }

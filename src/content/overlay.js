@@ -11,6 +11,7 @@ export class LearningOverlay {
     this.captionText = "";
     this.drag = null;
     this.activeAnchor = null;
+    this.activeLookup = null;
 
     this.host = document.createElement("div");
     this.host.dataset.bilingoRoot = "";
@@ -20,17 +21,17 @@ export class LearningOverlay {
     this.player.append(this.host);
 
     this.elements = {
-      shell: this.shadow.querySelector(".shell"),
-      activation: this.shadow.querySelector(".activation"),
-      caption: this.shadow.querySelector(".caption"),
-      tokens: this.shadow.querySelector(".tokens"),
-      card: this.shadow.querySelector(".card"),
-      cardWord: this.shadow.querySelector(".card-word"),
-      cardPinyin: this.shadow.querySelector(".card-pinyin"),
-      cardPos: this.shadow.querySelector(".card-pos"),
-      cardMeaning: this.shadow.querySelector(".card-meaning"),
-      cardContext: this.shadow.querySelector(".card-context"),
-      status: this.shadow.querySelector(".status"),
+      shell: queryElement(this.shadow, ".shell"),
+      activation: queryElement(this.shadow, ".activation"),
+      caption: queryElement(this.shadow, ".caption"),
+      tokens: queryElement(this.shadow, ".tokens"),
+      card: queryElement(this.shadow, ".card"),
+      cardWord: queryElement(this.shadow, ".card-word"),
+      cardPinyin: queryElement(this.shadow, ".card-pinyin"),
+      cardPos: queryElement(this.shadow, ".card-pos"),
+      cardMeaning: queryElement(this.shadow, ".card-meaning"),
+      cardContext: queryElement(this.shadow, ".card-context"),
+      status: queryElement(this.shadow, ".status"),
     };
 
     this.bindEvents();
@@ -42,29 +43,40 @@ export class LearningOverlay {
         this.setStatus("启用失败，请重试 / Could not enable; please retry");
       });
     });
-    this.shadow.querySelector(".card-close").addEventListener("click", () => this.closeCard(true));
-    this.shadow.querySelector(".replay").addEventListener("click", () => {
-      this.video.currentTime = Math.max(0, this.video.currentTime - 3);
-      void this.video.play().catch(() => {
-        this.setStatus("浏览器阻止了自动播放 / Playback was blocked");
-      });
-    });
-    this.elements.card.addEventListener("keydown", (event) => this.handleCardKeydown(event));
-    this.elements.caption.addEventListener("pointerdown", (event) => this.startDrag(event));
-    this.elements.caption.addEventListener("pointermove", (event) => this.moveDrag(event));
+    queryButton(this.shadow, ".card-close").addEventListener("click", () =>
+      this.closeCard(true),
+    );
+    this.elements.card.addEventListener("keydown", (event) =>
+      this.handleCardKeydown(event),
+    );
+    this.elements.caption.addEventListener("pointerdown", (event) =>
+      this.startDrag(event),
+    );
+    this.elements.caption.addEventListener("pointermove", (event) =>
+      this.moveDrag(event),
+    );
     this.elements.caption.addEventListener("pointerup", () => this.endDrag());
-    this.elements.caption.addEventListener("pointercancel", () => this.endDrag());
+    this.elements.caption.addEventListener("pointercancel", () =>
+      this.endDrag(),
+    );
   }
 
   updateSettings(settings) {
     this.settings = settings;
     this.host.style.setProperty("--bilingo-scale", String(settings.fontScale));
     this.host.style.setProperty("--bilingo-opacity", String(settings.opacity));
-    this.host.style.setProperty("--bilingo-offset", `${settings.verticalOffset}%`);
+    this.host.style.setProperty(
+      "--bilingo-offset",
+      `${settings.verticalOffset}%`,
+    );
     this.elements.activation.hidden = settings.enabled;
     this.elements.caption.hidden = !settings.enabled || !this.tokens.length;
-    for (const [index, pronunciation] of [...this.shadow.querySelectorAll(".pinyin")].entries()) {
-      pronunciation.textContent = settings.showPinyin ? this.tokens[index]?.pinyin ?? "" : "";
+    for (const [index, pronunciation] of [
+      ...this.shadow.querySelectorAll(".pinyin"),
+    ].entries()) {
+      pronunciation.textContent = settings.showPinyin
+        ? (this.tokens[index]?.pinyin ?? "")
+        : "";
     }
     if (!settings.enabled) this.closeCard();
   }
@@ -72,7 +84,9 @@ export class LearningOverlay {
   showCaption({ text, tokens }) {
     this.captionText = text;
     this.tokens = tokens;
-    this.elements.tokens.replaceChildren(...tokens.map((token, index) => this.makeToken(token, index)));
+    this.elements.tokens.replaceChildren(
+      ...tokens.map((token, index) => this.makeToken(token, index)),
+    );
     this.elements.caption.hidden = !this.settings?.enabled;
     this.elements.status.textContent = "";
   }
@@ -85,17 +99,26 @@ export class LearningOverlay {
   }
 
   setStatus(message) {
-    if (this.elements.status.textContent !== message) this.elements.status.textContent = message;
+    if (this.elements.status.textContent !== message)
+      this.elements.status.textContent = message;
   }
 
   makeToken(token, index) {
-    const element = document.createElement(token.selectable ? "button" : "span");
+    const element = document.createElement(
+      token.selectable ? "button" : "span",
+    );
     element.className = `token${token.selectable ? " selectable" : " punctuation"}`;
     element.dataset.index = String(index);
-    if (token.selectable) {
+    if (token.selectable && element instanceof HTMLButtonElement) {
       element.type = "button";
-      element.setAttribute("aria-label", `${token.surface}${token.pinyin ? `, ${token.pinyin}` : ""}`);
-      element.addEventListener("click", () => this.openCard(token, element));
+      element.setAttribute(
+        "aria-label",
+        `${token.surface}${token.pinyin ? `, ${token.pinyin}` : ""}`,
+      );
+      element.addEventListener(
+        "click",
+        () => void this.openCard(token, element),
+      );
     }
     const pronunciation = document.createElement("span");
     pronunciation.className = "pinyin";
@@ -107,20 +130,27 @@ export class LearningOverlay {
     return element;
   }
 
-  openCard(token, anchor) {
+  async openCard(token, anchor) {
     if (this.settings?.pauseOnClick) this.video.pause();
-    const definition = lookupWord(token.normalized);
+    const lookup = Symbol(token.normalized);
+    this.activeLookup = lookup;
     this.elements.cardWord.textContent = token.surface;
     this.elements.cardPinyin.textContent = token.pinyin;
-    this.elements.cardPos.textContent = definition.partOfSpeech;
-    this.elements.cardMeaning.textContent = definition.meaning;
+    this.elements.cardPos.textContent = "";
+    this.elements.cardMeaning.textContent = "正在查询 / Looking up…";
     this.elements.cardContext.textContent = this.captionText;
     this.elements.card.hidden = false;
-    this.elements.card.dataset.source = definition.source;
+    delete this.elements.card.dataset.source;
     this.activeAnchor?.removeAttribute("aria-expanded");
     this.activeAnchor = anchor;
-    this.shadow.querySelector(".card-close").focus();
     anchor.setAttribute("aria-expanded", "true");
+    queryButton(this.shadow, ".card-close").focus();
+
+    const definition = await lookupWord(token.normalized);
+    if (this.activeLookup !== lookup) return;
+    this.elements.cardPos.textContent = definition.partOfSpeech;
+    this.elements.cardMeaning.textContent = definition.meaning;
+    this.elements.card.dataset.source = definition.source;
   }
 
   closeCard(restoreFocus = false) {
@@ -128,8 +158,10 @@ export class LearningOverlay {
     for (const token of this.shadow.querySelectorAll("[aria-expanded]")) {
       token.removeAttribute("aria-expanded");
     }
-    if (restoreFocus && this.activeAnchor?.isConnected) this.activeAnchor.focus();
+    if (restoreFocus && this.activeAnchor?.isConnected)
+      this.activeAnchor.focus();
     this.activeAnchor = null;
+    this.activeLookup = null;
   }
 
   handleCardKeydown(event) {
@@ -139,7 +171,11 @@ export class LearningOverlay {
       return;
     }
     if (event.key !== "Tab") return;
-    const controls = [...this.elements.card.querySelectorAll("button:not([disabled])")];
+    const controls = [
+      .../** @type {NodeListOf<HTMLButtonElement>} */ (
+        this.elements.card.querySelectorAll("button:not([disabled])")
+      ),
+    ];
     if (!controls.length) return;
     const first = controls[0];
     const last = controls.at(-1);
@@ -154,13 +190,19 @@ export class LearningOverlay {
 
   startDrag(event) {
     if (event.target.closest("button")) return;
-    this.drag = { startY: event.clientY, startOffset: this.settings.verticalOffset };
+    this.drag = {
+      startY: event.clientY,
+      startOffset: this.settings.verticalOffset,
+    };
     this.elements.caption.setPointerCapture(event.pointerId);
   }
 
   moveDrag(event) {
     if (!this.drag) return;
-    const playerHeight = Math.max(1, this.player.getBoundingClientRect().height);
+    const playerHeight = Math.max(
+      1,
+      this.player.getBoundingClientRect().height,
+    );
     const delta = ((this.drag.startY - event.clientY) / playerHeight) * 100;
     const next = Math.min(35, Math.max(0, this.drag.startOffset + delta));
     this.host.style.setProperty("--bilingo-offset", `${next}%`);
@@ -168,7 +210,8 @@ export class LearningOverlay {
   }
 
   endDrag() {
-    if (Number.isFinite(this.drag?.nextOffset)) this.onOffsetChange(this.drag.nextOffset);
+    if (Number.isFinite(this.drag?.nextOffset))
+      this.onOffsetChange(this.drag.nextOffset);
     this.drag = null;
   }
 
@@ -185,12 +228,12 @@ function createTemplate() {
         --bilingo-scale: 1;
         --bilingo-opacity: .86;
         --bilingo-offset: 12%;
-        --lens-bg: rgba(7, 12, 16, calc(var(--bilingo-opacity) * .84));
-        --lens-border: rgba(134, 239, 172, .24);
-        --lens-muted: rgba(214, 255, 239, .72);
-        --lens-text: rgba(255, 252, 242, .98);
-        --lens-accent: #86efac;
-        --lens-warm: #f7d46b;
+        --lens-bg: rgba(18, 21, 27, calc(var(--bilingo-opacity) * .9));
+        --lens-border: rgba(220, 226, 235, .18);
+        --lens-muted: rgba(210, 219, 229, .7);
+        --lens-text: rgba(250, 252, 255, .98);
+        --lens-accent: #63bdf1;
+        --lens-warm: #f2c56b;
         position: absolute;
         inset: 0;
         z-index: 40;
@@ -205,16 +248,16 @@ function createTemplate() {
         right: 16px;
         top: 16px;
         pointer-events: auto;
-        border: 1px solid rgba(134,239,172,.32);
+        border: 1px solid rgba(220,226,235,.24);
         border-radius: 8px;
         padding: 8px 11px;
-        color: #ecfdf5;
-        background: rgba(7, 12, 16, .82);
+        color: #f8fafc;
+        background: rgba(18, 21, 27, .88);
         box-shadow: 0 12px 28px rgba(0,0,0,.28);
         backdrop-filter: blur(10px);
         cursor: pointer;
       }
-      .activation:hover { background: rgba(12, 22, 20, .92); border-color: rgba(134,239,172,.52); }
+      .activation:hover { background: rgba(28, 33, 42, .94); border-color: rgba(99,189,241,.45); }
       .activation:focus-visible, .token:focus-visible, .card button:focus-visible {
         outline: 2px solid var(--lens-accent);
         outline-offset: 2px;
@@ -240,11 +283,9 @@ function createTemplate() {
         padding: 9px 16px 11px;
         border: 1px solid var(--lens-border);
         border-radius: 8px;
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,0)),
-          var(--lens-bg);
-        box-shadow: 0 14px 42px rgba(0,0,0,.36), inset 0 1px rgba(255,255,255,.08);
-        backdrop-filter: blur(12px) saturate(1.15);
+        background: var(--lens-bg);
+        box-shadow: 0 12px 34px rgba(0,0,0,.34);
+        backdrop-filter: blur(12px);
       }
       .token {
         position: relative;
@@ -270,7 +311,7 @@ function createTemplate() {
         background: transparent;
       }
       button.token:hover {
-        background: rgba(134,239,172,.08);
+        background: rgba(99,189,241,.1);
         color: #fff;
       }
       button.token:hover::after { background: var(--lens-warm); }
@@ -295,36 +336,40 @@ function createTemplate() {
         left: 50%;
         bottom: calc(18% + var(--bilingo-offset));
         transform: translateX(-50%);
-        width: min(380px, calc(100% - 32px));
+        width: min(400px, calc(100% - 32px));
         box-sizing: border-box;
         pointer-events: auto;
-        padding: 15px;
-        border: 1px solid rgba(134,239,172,.24);
+        padding: 16px;
+        border: 1px solid rgba(220,226,235,.18);
         border-radius: 8px;
         color: #f8fafc;
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0)),
-          rgba(8, 13, 18, .94);
-        box-shadow: 0 22px 60px rgba(0,0,0,.48), inset 3px 0 var(--lens-accent);
+        background: rgba(23, 27, 34, .96);
+        box-shadow: 0 18px 46px rgba(0,0,0,.42);
         backdrop-filter: blur(14px);
       }
       .card-head { display: flex; align-items: flex-start; gap: 12px; }
-      .card-word { font-size: 32px; font-weight: 720; color: var(--lens-text); }
-      .card-reading { flex: 1; padding-top: 4px; }
-      .card-pinyin { color: var(--lens-accent); font-size: 15px; }
-      .card-pos { color: rgba(214,255,239,.6); font-size: 12px; }
-      .card-close, .replay {
-        border: 1px solid rgba(255,255,255,.14);
+      .card-word { font-size: 30px; line-height: 1.05; font-weight: 720; color: var(--lens-text); }
+      .card-reading { flex: 1; min-width: 0; padding-top: 3px; }
+      .card-pinyin { color: var(--lens-accent); font-size: 15px; line-height: 1.35; }
+      .card-pos { color: rgba(210,219,229,.58); font-size: 12px; line-height: 1.35; }
+      .card-close {
+        border: 1px solid rgba(255,255,255,.12);
         border-radius: 7px;
-        color: #e7fff2;
-        background: rgba(255,255,255,.06);
+        color: #d8e0ea;
+        background: rgba(255,255,255,.04);
         cursor: pointer;
       }
-      .card-close:hover, .replay:hover { border-color: rgba(134,239,172,.38); background: rgba(134,239,172,.1); }
+      .card-close:hover { border-color: rgba(99,189,241,.36); background: rgba(99,189,241,.1); }
       .card-close { width: 30px; height: 30px; }
-      .card-meaning { margin: 12px 0 8px; font-size: 15px; line-height: 1.45; }
-      .card-context { margin: 0 0 12px; color: rgba(226,232,240,.76); font-size: 13px; line-height: 1.45; }
-      .replay { padding: 7px 10px; }
+      .card-meaning { margin: 13px 0 9px; color: #eef2f7; font-size: 15px; line-height: 1.45; }
+      .card-context {
+        margin: 0;
+        padding-top: 10px;
+        border-top: 1px solid rgba(220,226,235,.12);
+        color: rgba(226,232,240,.7);
+        font-size: 13px;
+        line-height: 1.45;
+      }
       .status { position: absolute; left: 12px; bottom: 12px; color: #fff; font-size: 12px; }
       @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
     </style>
@@ -344,9 +389,22 @@ function createTemplate() {
         </div>
         <p class="card-meaning"></p>
         <p class="card-context"></p>
-        <button class="replay" type="button">Replay last 3 seconds</button>
       </article>
       <div class="status" role="status" aria-live="polite"></div>
     </section>`;
   return template.content;
+}
+
+function queryElement(root, selector) {
+  const element = root.querySelector(selector);
+  if (!(element instanceof HTMLElement))
+    throw new Error(`Missing overlay element: ${selector}`);
+  return element;
+}
+
+function queryButton(root, selector) {
+  const element = root.querySelector(selector);
+  if (!(element instanceof HTMLButtonElement))
+    throw new Error(`Missing overlay button: ${selector}`);
+  return element;
 }
