@@ -101,8 +101,9 @@ to [Security](SECURITY.md).
 
 ## Privacy and releases
 
-Caption parsing, pinyin and dictionary lookup stay inside the extension. See
-[Privacy](PRIVACY.md).
+Caption parsing, pinyin and dictionary lookup stay inside the extension. See the
+[public privacy policy](https://xiaobai-cn21.github.io/bililingo/privacy/) or its
+[repository source](PRIVACY.md).
 
 Internal packages can be created with `npm run package:beta`. Public releases
 must use `npm run release`, which also requires explicit legal, privacy,
